@@ -6,6 +6,6 @@ Experiencia de realidad aumentada para las etiquetas de las chaquetas: escaneas 
 
 - `index.html` – página (Google model-viewer, sin apps: Android con Chrome, iPhone con Safari)
 - `trex.glb` – modelo 3D
-- `etiqueta/` – QR que abre la experiencia, listo para imprimir
+- `etiqueta/` – QR de pago (Banco Fie), QR que abre el T-rex y la etiqueta doble para colgar en la chaqueta
 
 Modelo 3D: "Tyrant King – Tyrannosaurus" por Marcel Schanz (Sketchfab), licencia CC BY 4.0.

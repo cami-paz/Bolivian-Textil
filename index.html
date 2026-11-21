@@ -42,8 +42,8 @@
 <div class="stage" id="stage">
   <model-viewer id="dino" src="trex.glb" alt="T-rex en 3D de Chaquetas Cami"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
-    camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="2500" rotation-per-second="12deg"
-    camera-orbit="-25deg 80deg 105%" interaction-prompt="none"
+    camera-controls touch-action="pan-y"
+    camera-orbit="30deg 82deg 7.5m" camera-target="0m 1.3m 1.4m" field-of-view="30deg" min-camera-orbit="auto auto 2m" interaction-prompt="none" autoplay
     shadow-intensity="1.2" shadow-softness="0.8" exposure="1.5" environment-image="neutral">
     <button slot="ar-button" style="display:none"></button>
   </model-viewer>
@@ -88,6 +88,24 @@ function roar(){
   if(navigator.vibrate) navigator.vibrate([120,60,220,60,400]);
 }
 document.getElementById('roar').addEventListener('click',roar);
+// Animaciones: si el modelo trae "roar"/"walk", alterna en loop; si no, reproduce la primera
+const pick=(re)=>mv.availableAnimations.find(n=>re.test(n));
+let walkA,roarA;
+mv.addEventListener('load',()=>{
+  const a=mv.availableAnimations||[];
+  if(!a.length) return;
+  walkA=pick(/walk|idle|run/i)||a[0]; roarA=pick(/roar|attack|bite/i);
+  mv.animationName=walkA; mv.play({repetitions:Infinity});
+  if(roarA){ setInterval(()=>playRoar(false),9000); }
+});
+function playRoar(sound){
+  if(!roarA) return;
+  mv.animationName=roarA; mv.play({repetitions:1});
+  if(sound) roar();
+  mv.addEventListener('finished',()=>{mv.animationName=walkA; mv.play({repetitions:Infinity});},{once:true});
+}
+document.getElementById('roar').addEventListener('click',()=>playRoar(false));
+
 </script>
 </body>
 </html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c120f">
+<title>Chaquetas Cami · ¡Libera al T-rex!</title>
+<meta name="description" content="Escanea, libera al T-rex y llévalo a tu casa en realidad aumentada.">
+<script type="module" src="model-viewer.min.js"></script>
+<style>
+  :root{--dk:#1c120f;--dk2:#2a1a14;--org:#ff6214;--lime:#b8e628;--cr:#fff6e6}
+  *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--dk);color:var(--cr);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;overflow-x:hidden}
+  header{padding:calc(18px + env(safe-area-inset-top)) 20px 4px;text-align:center}
+  .brand{font-size:clamp(28px,8vw,44px);font-weight:900;letter-spacing:-1px;line-height:1}
+  .brand span{color:var(--org)}
+  .sub{font-size:12px;letter-spacing:3px;color:var(--lime);margin-top:6px;font-weight:700}
+  .msg{margin-top:12px;font-size:16px;opacity:.85}
+  .stage{position:relative;flex:1;min-height:58svh}
+  model-viewer{width:100%;height:100%;min-height:58svh;background:radial-gradient(ellipse at 50% 55%,#4a2a1c 0%,var(--dk) 70%);--progress-bar-color:var(--org);--progress-bar-height:4px}
+  .shake{animation:shake .9s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes shake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-7px,3px)}40%,60%{transform:translate(7px,-3px)}}
+  .flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,#ff621455,transparent 60%);opacity:0;transition:opacity .15s}
+  .flash.on{opacity:1}
+  .btns{display:flex;flex-direction:column;gap:10px;padding:14px 20px 6px}
+  button{font:inherit;border:0;border-radius:999px;padding:16px 20px;font-size:18px;font-weight:800;cursor:pointer}
+  #ar{background:var(--org);color:#fff;box-shadow:0 6px 24px #ff621466}
+  #roar{background:transparent;color:var(--cr);border:2px solid #ffffff33}
+  #ar[hidden]{display:none}
+  .tip{padding:8px 24px 6px;text-align:center;font-size:14px;opacity:.7}
+  footer{padding:10px 20px calc(16px + env(safe-area-inset-bottom));text-align:center;font-size:11px;opacity:.45}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">CHAQUETAS <span>CAMI</span></div>
+  <div class="sub">BOLIVIAN TEXTIL</div>
+  <p class="msg">🦖 ¡Liberaste al T-rex! Gíralo con el dedo.</p>
+</header>
+
+<div class="stage" id="stage">
+  <model-viewer id="dino" src="trex.glb" alt="T-rex en 3D de Chaquetas Cami"
+    ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
+    camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="2500" rotation-per-second="12deg"
+    camera-orbit="-25deg 80deg 105%" interaction-prompt="none"
+    shadow-intensity="1.2" shadow-softness="0.8" exposure="1.5" environment-image="neutral">
+    <button slot="ar-button" style="display:none"></button>
+  </model-viewer>
+  <div class="flash" id="flash"></div>
+</div>
+
+<div class="btns">
+  <button id="ar" hidden>📱 Llévalo a tu casa</button>
+  <button id="roar">🔊 ¡Haz que ruja!</button>
+</div>
+<p class="tip" id="tip">Toca "Llévalo a tu casa", apunta al suelo y mueve el celular despacio.</p>
+<footer>Modelo 3D: "Tyrant King – Tyrannosaurus" por Marcel Schanz (Sketchfab), CC BY 4.0</footer>
+
+<script>
+const mv=document.getElementById('dino'), arBtn=document.getElementById('ar');
+mv.addEventListener('load',()=>{
+  if(mv.canActivateAR){arBtn.hidden=false}
+  else{document.getElementById('tip').textContent='Para verlo en tu casa, abre esta página en tu celular (Chrome en Android o Safari en iPhone).'}
+});
+arBtn.addEventListener('click',()=>mv.activateAR());
+
+// Rugido sintetizado (sin archivos de audio)
+let ctx;
+function roar(){
+  ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+  const t=ctx.currentTime, dur=2.2;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate), d=buf.getChannelData(0);
+  let last=0; for(let i=0;i<d.length;i++){const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.5}
+  const noise=ctx.createBufferSource(); noise.buffer=buf;
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=6;
+  lp.frequency.setValueAtTime(180,t); lp.frequency.linearRampToValueAtTime(900,t+0.35); lp.frequency.exponentialRampToValueAtTime(140,t+dur);
+  const osc=ctx.createOscillator(); osc.type='sawtooth';
+  osc.frequency.setValueAtTime(70,t); osc.frequency.linearRampToValueAtTime(110,t+0.3); osc.frequency.exponentialRampToValueAtTime(45,t+dur);
+  const lfo=ctx.createOscillator(), lfoG=ctx.createGain(); lfo.frequency.value=28; lfoG.gain.value=18; lfo.connect(lfoG); lfoG.connect(osc.frequency);
+  const oscG=ctx.createGain(); oscG.gain.value=0.35;
+  const sh=ctx.createWaveShaper(), c=new Float32Array(1024); for(let i=0;i<1024;i++){const x=i/512-1; c[i]=Math.tanh(3*x)} sh.curve=c;
+  const env=ctx.createGain(); env.gain.setValueAtTime(0.0001,t); env.gain.exponentialRampToValueAtTime(1,t+0.25); env.gain.setValueAtTime(1,t+1.1); env.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  noise.connect(lp); osc.connect(oscG); oscG.connect(lp); lp.connect(sh); sh.connect(env); env.connect(ctx.destination);
+  noise.start(t); osc.start(t); lfo.start(t); noise.stop(t+dur); osc.stop(t+dur); lfo.stop(t+dur);
+  const st=document.getElementById('stage'), fl=document.getElementById('flash');
+  st.classList.remove('shake'); void st.offsetWidth; st.classList.add('shake'); fl.classList.add('on'); setTimeout(()=>fl.classList.remove('on'),500);
+  if(navigator.vibrate) navigator.vibrate([120,60,220,60,400]);
+}
+document.getElementById('roar').addEventListener('click',roar);
+</script>
+</body>
+</html>
